@@ -1,0 +1,57 @@
+"Phrases"
+{
+	"Off"
+	{
+		"en"	"{lightred}Off"
+	}
+	"On"
+	{
+		"en"	"{green}On"
+	}
+	"Round"
+	{
+		"#format" "{1:s},{2:d}"
+		"en"			"{1} {2} round left for carnage."
+	}
+	"Rounds"
+	{
+		"#format" "{1:s},{2:d}"
+		"en"			"{1} {2} rounds left for carnage."
+	}
+	"AlreadyCarn"
+	{
+		"#format" "{1:s}"
+		"en"		"{1} It is already carnage round."
+	}
+	"Admin"
+	{
+		"#format" "{1:s}"
+		"en"		"{1} You need to be admin to use this command."
+	}
+	"AWP"
+	{
+		"#format" "{1:s}"
+		"en"	"{1} YOU RECEIVED AN {green}AWP"
+	}
+	"UseInCarn"
+	{
+		"#format" "{1:s}"
+		"en"	"{1} You can use this command in carnage round only."
+	}
+	"ThisIsCarn"
+	{
+		"#format" "{1:s}"
+		"en"	"{1} This is Carnage Round!!"
+	}
+	"BSM"
+	{
+		"#format" "{1:s},{2:s}"
+		"en" "{1} Toggled {2} {default}bhop round music"
+	}
+	"TurnOnBsm"
+	{
+		"#format" "{1:s}"
+		"en"	"{1} Type {lightgreen}!bsm{default} to enable bhop music."
+	}
+	
+}
