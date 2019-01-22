@@ -10,15 +10,10 @@
 #pragma semicolon 1
 #pragma newdecls required
 
+//Plugin variables
 int g_Round = 0;
-bool g_NoScope = false, g_bForceCarnage[MAXPLAYERS+1] = false;
+bool g_NoScope = false, g_bForceCarnage[MAXPLAYERS+1] = false, g_bKnifeDamage = false;
 char Prefix[100];
-
-ConVar g_EveryWhichRound, g_ADMINFLAG, g_SongPath, g_SongVolume, g_Prefix;
-
-//ClientPrefs
-Handle Handle_BSM;
-bool bsm[MAXPLAYERS+1];
 
 //Song Path Variables
 char gs_SongPath[256];
@@ -28,21 +23,19 @@ char song[64];
 int randomsong = 0;
 float g_fVolume = 0.05;
 
-char WeaponList[][] =  
-{ 
-    "weapon_glock", "weapon_usp_silencer", "weapon_deagle", "weapon_tec9", "weapon_hkp2000", "weapon_p250", "weapon_fiveseven", "weapon_elite", "weapon_cz75a", "weapon_galilar", "weapon_famas", "weapon_ak47", "weapon_m4a1", "weapon_m4a1_silencer", "weapon_ssg08", "weapon_aug", "weapon_sg556", "weapon_awp", "weapon_scar20", "weapon_g3sg1", "weapon_nova", "weapon_xm1014","weapon_mag7", "weapon_m249", "weapon_negev", "weapon_mac10", "weapon_mp9", "weapon_mp7", "weapon_ump45", "weapon_p90", "weapon_bizon", "weapon_mp5sd", "weapon_sawedoff", "weapon_knife", "weapon_flashbang", "weapon_hegrenade", "weapon_smokegrenade", "weapon_healthshot", "weapon_decoy", "weapon_molotov", "weapon_incgrenade", "weapon_tagrenade", "weapon_taser"
-}; 
-char WeaponList2[][] =  
-{ 
-    "weapon_glock", "weapon_usp_silencer", "weapon_deagle", "weapon_tec9", "weapon_hkp2000", "weapon_p250", "weapon_fiveseven", "weapon_elite", "weapon_cz75a", "weapon_galilar", "weapon_famas", "weapon_ak47", "weapon_m4a1", "weapon_m4a1_silencer", "weapon_ssg08", "weapon_aug", "weapon_sg556", "weapon_awp", "weapon_scar20", "weapon_g3sg1", "weapon_nova", "weapon_xm1014","weapon_mag7", "weapon_m249", "weapon_negev", "weapon_mac10", "weapon_mp9", "weapon_mp7", "weapon_ump45", "weapon_p90", "weapon_bizon", "weapon_mp5sd", "weapon_sawedoff", "weapon_flashbang", "weapon_hegrenade", "weapon_smokegrenade", "weapon_healthshot", "weapon_decoy", "weapon_molotov", "weapon_incgrenade", "weapon_tagrenade", "weapon_taser"
-}; 
+//Cvars
+ConVar g_EveryWhichRound, g_ADMINFLAG, g_SongPath, g_SongVolume, g_Prefix, g_KnifeDamage, g_AutoBhop, g_CommandName;
+
+//ClientPrefs
+Handle Handle_BSM;
+bool bsm[MAXPLAYERS+1];
 
 public Plugin myinfo = 
 {
 	name = "[CSGO] Carnage Round", 
 	author = "Elitcky, Cruze",
-	description = "Normal carnage rounds",
-	version = "1.3",
+	description = "Noscope Rounds every X rounds.",
+	version = "1.5",
 	url = "http://steamcommunity.com/id/stormsmurf2 ; http://steamcommunity.com/profiles/76561198132924835"
 };
 
@@ -51,23 +44,25 @@ public void OnPluginStart()
 	HookEvent("round_start", OnRoundStart);
 	HookEvent("round_end", OnRoundEnd);
 
-	RegConsoleCmd("sm_carnage", CMD_CARNAGE);
-	RegConsoleCmd("sm_awp", CMD_AWP);
-	RegConsoleCmd("sm_forcecarnage", CMD_FCARNAGE);
-	RegConsoleCmd("sm_fcarnage", CMD_FCARNAGE);
 	RegConsoleCmd("sm_bsm", CMD_BSM);
 	
 	Handle_BSM = RegClientCookie("Bhop Sound Mute", "Sound setting", CookieAccess_Private);
 
-	g_EveryWhichRound = CreateConVar("sm_carnage_round", "5");
-	g_ADMINFLAG = CreateConVar("sm_carnage_flag", "z");
+	g_EveryWhichRound = CreateConVar("sm_carnage_round", "5", "Interval between carnage rounds.");
+	g_ADMINFLAG = CreateConVar("sm_carnage_flag", "z", "Flag for force carnage command.");
 	g_SongPath = CreateConVar("sm_carnage_song", "misc/carnageround/ronda_carnageR.mp3,misc/carnageround/ronda_carnage2R.mp3", "DON'T USE SPACE BETWEEN \",\"");
-	g_SongVolume = CreateConVar("sm_carnage_song_volume", "0.05");
-	g_Prefix = CreateConVar("sm_carnage_prefix", "CARNAGE");
+	g_SongVolume = CreateConVar("sm_carnage_song_volume", "0.05", "Volume of song(s).");
+	g_Prefix = CreateConVar("sm_carnage_prefix", "{green}[CARNAGE]{default}", "Change plugin's prefix of chat messages.");
+	g_KnifeDamage = CreateConVar("sm_carnage_knife_dmg", "0", "Enable or Disable knife damage in carnage round.");
+	g_AutoBhop = CreateConVar("sm_carnage_autobhop", "1", "Enable or Disable autobhop in carnage round.");
+	g_CommandName = CreateConVar("sm_carnage_command", "carnage,crng", "Command name(s). According to default values: !carnage/!crng = shows roundleft for carnage round and !fcarnage/!crng = forces carnage round.");
 	
 	HookConVarChange(g_SongPath, OnSettingsChanged);
 	HookConVarChange(g_SongVolume, OnSettingsChanged);
 	HookConVarChange(g_Prefix, OnSettingsChanged);
+	HookConVarChange(g_KnifeDamage, OnSettingsChanged);
+	HookConVarChange(g_AutoBhop, OnSettingsChanged);
+	HookConVarChange(g_CommandName, OnSettingsChanged);
 	
 	AutoExecConfig(true, "carnage-mod");
 	LoadTranslations("carnage_mod.phrases");
@@ -75,6 +70,7 @@ public void OnPluginStart()
 	for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i, false))
 	{
 		SDKHook(i, SDKHook_PreThink, PreThink);
+		SDKHook(i, SDKHook_OnTakeDamageAlive, OnTakeDamageAlive);
 		OnClientCookiesCached(i);
 	}
 }
@@ -108,11 +104,77 @@ public int OnSettingsChanged(Handle convar, const char[] oldValue, const char[] 
 	{
 		strcopy(Prefix, sizeof(Prefix), newValue);
 	}
+	else if(convar == g_KnifeDamage)
+	{
+		g_bKnifeDamage = !!StringToInt(newValue);
+	}
+	else if(convar == g_AutoBhop)
+	{
+		if(g_NoScope && StrEqual(newValue, "1", false))
+		{
+			SetHudTextParams(0.45, 0.350,  6.0, 0, 255, 0, 255, 0, 0.25, 0.5, 0.3);
+			SetConVarBool(FindConVar("sv_autobunnyhopping"), true);
+			for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i))
+			{
+				ShowHudText(i, -1, "AUTO-BHOP is turned ON");
+			}
+			
+		}
+		else if(g_NoScope && StrEqual(newValue, "0", false))
+		{
+			SetHudTextParams(0.45, 0.350, 6.0, 255, 0, 0, 255, 0, 0.25, 0.5, 0.3);
+			
+			SetConVarBool(FindConVar("sv_autobunnyhopping"), false);
+			for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i))
+			{
+				ShowHudText(i, -1, "AUTO-BHOP is turned OFF");
+			}
+		}
+		else
+		{
+			SetConVarBool(FindConVar("sv_autobunnyhopping"), !!StringToInt(newValue));
+		}
+	}
+	else if(convar == g_CommandName)
+	{
+		int commandsfound = 0;
+		char CommandName[32], Command[6][256], buffer[100];
+		
+		GetConVarString(g_CommandName, CommandName, sizeof(CommandName));
+		commandsfound = ExplodeString(CommandName, ",", Command, 6, 256);
+		for(int i = 0; i <= commandsfound -1; i++)
+		{
+			Format(buffer, 256, "sm_%s", Command[i]);
+			RegConsoleCmd(buffer, CMD_CARNAGE);
+			Format(buffer, 256, "sm_f%s", Command[i]);
+			RegConsoleCmd(buffer, CMD_FCARNAGE);
+			Format(buffer, 256, "sm_force%s", Command[i]);
+			RegConsoleCmd(buffer, CMD_FCARNAGE);
+		}
+	}
 }
 
-public void OnMapStart()
+public void OnConfigsExecuted()
 {
-	char buffer[100];
+	int commandsfound = 0;
+	char CommandName[32], Command[6][256], buffer[100];
+	
+	GetConVarString(g_CommandName, CommandName, sizeof(CommandName));
+	commandsfound = ExplodeString(CommandName, ",", Command, 6, 256);
+	for(int i = 0; i <= commandsfound -1; i++)
+	{
+		Format(buffer, 256, "sm_%s", Command[i]);
+		RegConsoleCmd(buffer, CMD_CARNAGE);
+		Format(buffer, 256, "sm_f%s", Command[i]);
+		RegConsoleCmd(buffer, CMD_FCARNAGE);
+		Format(buffer, 256, "sm_force%s", Command[i]);
+		RegConsoleCmd(buffer, CMD_FCARNAGE);
+	}
+
+	g_fVolume = GetConVarFloat(g_SongVolume);
+	GetConVarString(g_Prefix, Prefix, sizeof(Prefix));
+	g_bKnifeDamage = GetConVarBool(g_KnifeDamage);
+
 	GetConVarString(g_SongPath, gs_SongPath, sizeof(gs_SongPath));
 	if (!StrEqual(gs_SongPath, "", false))
 	{
@@ -126,16 +188,19 @@ public void OnMapStart()
 			AddFileToDownloadsTable(buffer);
 		}
 	}
+}
+
+public void OnMapStart()
+{
 	g_Round = 0;
 	g_NoScope = false;
-	g_fVolume = GetConVarFloat(g_SongVolume);
-	GetConVarString(g_Prefix, Prefix, sizeof(Prefix));
 }
 
 public void OnClientPutInServer(int client)
 {
 	OnClientCookiesCached(client);
 	SDKHook(client, SDKHook_PreThink, PreThink);
+	SDKHook(client, SDKHook_OnTakeDamageAlive, OnTakeDamageAlive);
 }
 
 public void OnClientCookiesCached(int client)
@@ -158,10 +223,26 @@ public Action PreThink(int client)
 
 		char item[64];
 		GetEdictClassname(weapon, item, sizeof(item)); 
-		if(g_NoScope && isNoScopeWeapon(item))
+		if(g_NoScope && IsNoScopeWeapon(item))
 		{
 			SetEntDataFloat(weapon, m_flNextSecondaryAttack, GetGameTime() + 9999.9); //Disable Scope
 		}
+	}
+	return Plugin_Continue;
+}
+
+public Action OnTakeDamageAlive(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
+{
+	if (!IsValidEntity(weapon) || !g_NoScope || g_bKnifeDamage)
+		return Plugin_Continue;
+	if (attacker <= 0 || attacker > MaxClients)
+		return Plugin_Continue;
+	char WeaponName[20];
+	GetEntityClassname(weapon, WeaponName, sizeof(WeaponName));
+	if(StrContains(WeaponName, "knife", false) != -1 || StrContains(WeaponName, "bayonet", false) != -1 || StrContains(WeaponName, "fists", false) != -1 || StrContains(WeaponName, "axe", false) != -1 || StrContains(WeaponName, "hammer", false) != -1 || StrContains(WeaponName, "spanner", false) != -1 || StrContains(WeaponName, "melee", false) != -1)
+	{
+		PrintCenterText(attacker, "Knife damage is disabled in this round.");
+		return Plugin_Handled;
 	}
 	return Plugin_Continue;
 }
@@ -174,8 +255,17 @@ public void OnRoundEnd(Event hEvent, const char[] sName, bool dontBroadcast)
 		GameRules_SetProp("m_bTCantBuy", false, _, _, true);
 		GameRules_SetProp("m_bCTCantBuy", false, _, _, true);
 		CreateTimer(GetConVarFloat(FindConVar("mp_round_restart_delay"))-0.1, Weapon_Strip);
+		if(g_AutoBhop.BoolValue)
+		{
+			SetHudTextParams(0.45, 0.350, 6.0, 255, 0, 0, 255, 0, 0.25, 0.5, 0.3);
+			SetConVarBool(FindConVar("sv_autobunnyhopping"), false);
+			for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i))
+			{
+				ShowHudText(i, -1, "AUTO-BHOP is turned OFF");
+			}
+		}
+		strcopy(song, sizeof(song), "");
 	}
-	strcopy(song, sizeof(song), "");
 }
 
 public void OnRoundStart(Event hEvent, const char[] sName, bool dontBroadcast)
@@ -215,33 +305,8 @@ public Action CMD_FCARNAGE(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action CMD_AWP(int client, int args)
-{
-	if (IsValidClient(client) && IsPlayerAlive(client))
-	{
-		if (g_NoScope)
-		{
-			CPrintToChat(client, "%t", "AWP", Prefix);
-			Client_GiveWeaponAndAmmo(client, "weapon_awp", _, 50, _, 100);
-		}
-		else
-		{
-			CPrintToChat(client, "%t", "UseInCarn", Prefix);
-		}
-	}
-	return Plugin_Handled;
-}
-
 public Action CMD_CARNAGE(int client, int args)
 {
-	for (int i = 0; i <= songsfound -1; i++)
-	{
-		char buffer[100];
-		Format(buffer, 100, "%s", CarnageSong[i]);
-		PrintToChat(client, buffer);
-		ReplaceString(buffer, sizeof(buffer), " ", "");
-		PrintToChat(client, buffer);
-	}
 	if (g_NoScope)
 	{
 		CPrintToChat(client, "%t", "ThisIsCarn", Prefix);
@@ -267,12 +332,13 @@ public Action CMD_BSM(int client, int args)
 		SetClientCookie(client, Handle_BSM, "0");
 		bsm[client] = false;
 	}
-	char OFF[5], ON[5];
+	char OFF[16], ON[16];
 	Format(OFF, sizeof(OFF), "%t", "Off");
 	Format(ON, sizeof(ON), "%t", "On");
 	CPrintToChat(client, "%t", "BSM", Prefix, bsm[client] ?  OFF : ON);
 	return Plugin_Handled;
 }
+
 public Action Start_Carnage(Handle timer)
 {
 	g_NoScope = true;
@@ -283,6 +349,15 @@ public Action Start_Carnage(Handle timer)
 	CPrintToChatAll("%t", "ThisIsCarn", Prefix);
 	CPrintToChatAll("%t", "ThisIsCarn", Prefix);
 	DoWeapons();
+	if(g_AutoBhop.BoolValue)
+	{
+		SetHudTextParams(0.45, 0.350,  6.0, 0, 255, 0, 255, 0, 0.25, 0.5, 0.3);
+		SetConVarBool(FindConVar("sv_autobunnyhopping"), true);
+		for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i))
+		{
+			ShowHudText(i, -1, "AUTO-BHOP is turned ON");
+		}
+	}
 	if(songsfound > 0)
 	{
 		if (songsfound < 2)
@@ -301,9 +376,7 @@ public Action Start_Carnage(Handle timer)
 		{	
 			if(!bsm[client])
 			{
-				//ClientCommand(client, "play *%s", song);
 				EmitSoundToClient(client, song, _, _, _, _, g_fVolume);
-				//CPrintToChat(client, "{green}[%s] {default}Playing %s", Prefix, song);
 			}
 			else
 			{
@@ -317,36 +390,22 @@ public Action Start_Carnage(Handle timer)
 
 public Action Weapon_Strip(Handle timer)
 {
-	RemoveWeapons();
+	for(int client = 1; client <= MaxClients; client++) if(IsValidClient(client, false))
+	{
+		Client_RemoveAllWeapons(client, "weapon_knife");
+	}
 	timer = null;
 	return Plugin_Stop;
 }
 
-void RemoveWeapons()
-{
-	for (int i = 0; i < sizeof(WeaponList2); i++)
-	{ 
-		int ent = -1;
-		while ((ent = FindEntityByClassname(ent, WeaponList[i])) != -1)
-		{ 
-			AcceptEntityInput(ent, "Kill");
-		}
-	}
-}
-
 void DoWeapons()
 {
-	for (int i = 0; i < sizeof(WeaponList); i++)
-	{ 
-		int ent = -1;
-		while ((ent = FindEntityByClassname(ent, WeaponList[i])) != -1)
-		{ 
-			AcceptEntityInput(ent, "Kill");
-		}
+	for(int client = 1; client <= MaxClients; client++) if(IsValidClient(client, false))
+	{
+		Client_RemoveAllWeapons(client, "weapon_knife");
 	}
 	CreateTimer(0.1, TIMER_AWP);
 }
-
 
 public Action TIMER_AWP(Handle timer)
 {
@@ -354,7 +413,7 @@ public Action TIMER_AWP(Handle timer)
 	{
 		if (IsValidClient(client, false) && IsPlayerAlive(client))
 		{
-			Client_GiveWeaponAndAmmo(client, "weapon_awp", _, 50, _, 100);
+			Client_GiveWeaponAndAmmo(client, "weapon_awp", _, 100, _, 200);
 			CPrintToChat(client, "%t", "AWP", Prefix);
 		}
 	}
@@ -362,7 +421,7 @@ public Action TIMER_AWP(Handle timer)
 	return Plugin_Stop;
 }
 
-bool isNoScopeWeapon(char[] weapon)
+bool IsNoScopeWeapon(char[] weapon)
 {
 	if(StrEqual(weapon, "weapon_scout")
 		|| StrEqual(weapon, "weapon_g3sg1")
@@ -405,7 +464,7 @@ public void GetFlags(int client)
 		else if (StrEqual(flag, "t")) g_hFlag = ADMFLAG_CUSTOM6;
 		else
 		{
-			SetFailState("The given flag is invalid in sm_carnage_flag");
+			SetFailState("The given flag in sm_carnage_flag is invalid");
 		}
 		
 		int flags = GetUserFlagBits(client);		
