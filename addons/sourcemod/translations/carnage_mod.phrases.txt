@@ -33,11 +33,6 @@
 		"#format" "{1:s}"
 		"en"	"{1} YOU RECEIVED AN {green}AWP"
 	}
-	"UseInCarn"
-	{
-		"#format" "{1:s}"
-		"en"	"{1} You can use this command in carnage round only."
-	}
 	"ThisIsCarn"
 	{
 		"#format" "{1:s}"
