@@ -35,7 +35,7 @@ public Plugin myinfo =
 	name = "[CSGO] Carnage Round", 
 	author = "Elitcky, Cruze",
 	description = "Noscope Rounds every X rounds.",
-	version = "1.5",
+	version = "1.5.1",
 	url = "http://steamcommunity.com/id/stormsmurf2 ; http://steamcommunity.com/profiles/76561198132924835"
 };
 
@@ -309,7 +309,7 @@ public Action CMD_CARNAGE(int client, int args)
 {
 	if (g_NoScope)
 	{
-		CPrintToChat(client, "%t", "ThisIsCarn", Prefix);
+		CPrintToChat(client, "%s %t", Prefix, "ThisIsCarn");
 	}
 	else
 	{ 
@@ -341,17 +341,23 @@ public Action CMD_BSM(int client, int args)
 
 public Action Start_Carnage(Handle timer)
 {
+	
+	SetHudTextParams(0.45, 0.30,  6.0, 0, 200, 200, 255, 0, 0.25, 0.5, 0.3);
+	for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i))
+	{
+		ShowHudText(i, -1, "%t", "ThisIsCarn");
+	}
 	g_NoScope = true;
 	g_Round = 0;
 	GameRules_SetProp("m_bTCantBuy", true, _, _, true);
 	GameRules_SetProp("m_bCTCantBuy", true, _, _, true);
-	CPrintToChatAll("%t", "ThisIsCarn", Prefix);
-	CPrintToChatAll("%t", "ThisIsCarn", Prefix);
-	CPrintToChatAll("%t", "ThisIsCarn", Prefix);
+	CPrintToChatAll("%s %t", Prefix, "ThisIsCarn");
+	CPrintToChatAll("%s %t", Prefix, "ThisIsCarn");
+	CPrintToChatAll("%s %t", Prefix, "ThisIsCarn");
 	DoWeapons();
 	if(g_AutoBhop.BoolValue)
 	{
-		SetHudTextParams(0.45, 0.350,  6.0, 0, 255, 0, 255, 0, 0.25, 0.5, 0.3);
+		SetHudTextParams(-1.0, 1.0,  6.0, 0, 255, 0, 255, 0, 0.25, 0.5, 0.3);
 		SetConVarBool(FindConVar("sv_autobunnyhopping"), true);
 		for(int i = 1; i <= MaxClients; i++) if(IsValidClient(i))
 		{
