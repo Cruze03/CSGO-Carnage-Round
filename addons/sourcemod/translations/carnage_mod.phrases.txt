@@ -35,8 +35,7 @@
 	}
 	"ThisIsCarn"
 	{
-		"#format" "{1:s}"
-		"en"	"{1} This is Carnage Round!!"
+		"en"	"This is Carnage Round!"
 	}
 	"BSM"
 	{
