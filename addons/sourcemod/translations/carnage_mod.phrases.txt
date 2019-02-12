@@ -18,20 +18,52 @@
 		"#format" "{1:s},{2:d}"
 		"en"			"{1} {2} rounds left for carnage."
 	}
+	"KnifeDmg"
+	{
+		"en"			"Knife damage is disabled in this round."
+	}
+	"WeaponDrop"
+	{
+		"#format" "{1:s}"
+		"en"		"{1} Weapons cannot be dropped in carnage round."
+	}
+	"ADVERT"
+	{
+		"#format" "{1:s}"
+		"en"		"{1} Type {green}!awp/!scout{default} to get weapon for carnage round."
+	}
 	"AlreadyCarn"
 	{
 		"#format" "{1:s}"
 		"en"		"{1} It is already carnage round."
 	}
-	"Admin"
+	"UseThisInCarn"
 	{
 		"#format" "{1:s}"
-		"en"		"{1} You need to be admin to use this command."
+		"en"	"{1} You can use this command in carnage round only!!"
+	}
+	"ALREADYWEAPON"
+	{
+		"#format" "{1:s}"
+		"en"	"{1} {lightred}You already received your weapon for this round!"
 	}
 	"AWP"
 	{
 		"#format" "{1:s}"
 		"en"	"{1} YOU RECEIVED AN {green}AWP"
+	}
+	"SCOUT"
+	{
+		"#format" "{1:s}"
+		"en"	"{1} YOU RECEIVED A {green}SCOUT"
+	}
+	"ABON"
+	{
+		"en"	"AUTO-BHOP is turned ON"
+	}
+	"ABOFF"
+	{
+		"en"	"AUTO-BHOP is turned OFF"
 	}
 	"ThisIsCarn"
 	{
