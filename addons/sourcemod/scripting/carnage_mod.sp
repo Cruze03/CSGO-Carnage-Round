@@ -12,7 +12,7 @@
 
 //Plugin variables
 int g_Round = 0;
-bool g_NoScope = false, g_bKnifeDamage = false;
+bool g_NoScope = false, g_bKnifeDamage = false, g_bCSGO = false;
 char Prefix[100];
 bool GotWeapon[MAXPLAYERS+1] = false;
 
@@ -36,10 +36,10 @@ Handle g_Advert;
 
 public Plugin myinfo = 
 {
-	name = "[CSGO] Carnage Round", 
+	name = "[CSS/CSGO] Carnage Round", 
 	author = "Elitcky, Cruze",
 	description = "Noscope Rounds every X rounds.",
-	version = "1.5.2",
+	version = "1.5.3",
 	url = "http://steamcommunity.com/id/stormsmurf2 ; http://steamcommunity.com/profiles/76561198132924835"
 };
 
@@ -80,6 +80,13 @@ public void OnPluginStart()
 		SDKHook(i, SDKHook_OnTakeDamageAlive, OnTakeDamageAlive);
 		SDKHook(i, SDKHook_WeaponDrop, OnWeaponDrop);
 		OnClientCookiesCached(i);
+	}
+	
+	g_bCSGO = GetEngineVersion() == Engine_CSGO ? true : false;
+	
+	if(GetEngineVersion() != Engine_CSGO && GetEngineVersion() != Engine_CSS)
+	{
+		SetFailState("[CARNAGE] This plugin is supported in CSGO and CSS only.");
 	}
 }
 
@@ -382,7 +389,10 @@ public Action CMD_SCOUT(int client, int args)
 	}
 	else
 	{
-		Client_GiveWeaponAndAmmo(client, "weapon_scout", _, 100, _, 200);
+		if(g_bCSGO)
+			Client_GiveWeaponAndAmmo(client, "weapon_ssg08", _, 100, _, 200);
+		else
+			Client_GiveWeaponAndAmmo(client, "weapon_scout", _, 100, _, 200);
 		CPrintToChat(client, "%t", "SCOUT", Prefix);
 		GotWeapon[client] = true;
 	}
@@ -565,7 +575,10 @@ public int WeaponHandler(Menu menu, MenuAction action, int client, int item)
 		{
 			if(!GotWeapon[client])
 			{	
-				Client_GiveWeaponAndAmmo(client, "weapon_ssg08", _, 100, _, 200);
+				if(g_bCSGO)
+					Client_GiveWeaponAndAmmo(client, "weapon_ssg08", _, 100, _, 200);
+				else
+					Client_GiveWeaponAndAmmo(client, "weapon_scout", _, 100, _, 200);
 				CPrintToChat(client, "%t", "SCOUT", Prefix);
 				GotWeapon[client] = true;
 			}
